@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Prerequisites
 *.d
 
@@ -39,3 +40,10 @@
 
 # debug information files
 *.dwo
+=======
+allo/
+xls/
+miniconda/
+abax-setup.sh
+.vscode/
+>>>>>>> master

@@ -1,49 +1,57 @@
+template <int Width, bool Signed = true>
+using ac_int = XlsInt<Width, Signed>;
+
 template<int W, int F>
-struct Fixed {
-    __xls_int<W> raw;
-
-    // Default to 0
-    Fixed() : raw(0) {}
-
-    // Construct directly from underlying raw value
-    explicit Fixed(__xls_int<W> v) : raw(v) {}
-
-    // Construct from an integer
-    static Fixed from_int(int v) {
-        __xls_int<W> scaled = (__xls_int<W>)(v) << F;
-        return Fixed(scaled);
-    }
+struct SFixed {
+    ac_int<W - F, true>  int_part;  // before binary point
+    ac_int<F, false>     frac_part; // after binary point
 };
 
 template<int W, int F>
-Fixed<W,F> operator+(Fixed<W,F> a, Fixed<W,F> b) {
-    return Fixed<W,F>{ a.raw + b.raw };
+ac_int<W, true> pack(SFixed<W,F> x) {
+    ac_int<W, true> hi = (ac_int<W, true>)x.int_part << F;
+    ac_int<W, true> lo = (ac_int<W, true>)x.frac_part;
+    return hi | lo;
 }
 
 template<int W, int F>
-Fixed<W,F> operator-(Fixed<W,F> a, Fixed<W,F> b) {
-    return Fixed<W,F>{ a.raw - b.raw };
+SFixed<W,F> unpack(ac_int<W, true> raw) {
+    SFixed<W,F> r;
+
+    r.int_part = (ac_int<W - F, true>)(raw >> F);
+
+    ac_int<W, false> uraw = (ac_int<W, false>)raw;
+    ac_int<W, false> mask = ((ac_int<W, false>)1 << F) - 1;
+    r.frac_part = (ac_int<F, false>)(uraw & mask);
+
+    return r;
 }
 
 template<int W, int F>
-Fixed<W,F> operator*(Fixed<W,F> a, Fixed<W,F> b) {
-    using Wide = __xls_int<2 * W>;
+SFixed<W,F> operator+(SFixed<W,F> a, SFixed<W,F> b) {
+    ac_int<W, true> ra = pack<W,F>(a);
+    ac_int<W, true> rb = pack<W,F>(b);
+    ac_int<W, true> sum = ra + rb;
+    return unpack<W,F>(sum);
+}
 
-    Wide aw = (Wide)a.raw;
-    Wide bw = (Wide)b.raw;
+template<int W, int F>
+SFixed<W,F> operator-(SFixed<W,F> a, SFixed<W,F> b) {
+    ac_int<W, true> ra = pack<W,F>(a);
+    ac_int<W, true> rb = pack<W,F>(b);
+    ac_int<W, true> diff = ra - rb;
+    return unpack<W,F>(diff);
+}
 
-    Wide prod = aw * bw;
+template<int W, int F>
+SFixed<W,F> operator*(SFixed<W,F> a, SFixed<W,F> b) {
+    using Wide = ac_int<2 * W, true>;
 
-    if (F > 0) {
-        Wide half = (Wide)1 << (F - 1);
-        Wide bias = (prod >= 0) ? half : (Wide)0;
-        prod = prod + bias;
-    }
+    ac_int<W, true> ra = pack<W,F>(a);
+    ac_int<W, true> rb = pack<W,F>(b);
 
-    // Drop F fractional bits
-    Wide scaled = prod >> F;
+    Wide prod = (Wide)ra * (Wide)rb;
+    ac_int<W, true> scaled = (ac_int<W, true>)(prod >> F);
 
-    __xls_int<W> narrowed = (__xls_int<W>)scaled;
-
-    return Fixed<W,F>{ narrowed };
+    return unpack<W,F>(scaled);
 }

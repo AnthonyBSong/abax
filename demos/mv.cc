@@ -9,7 +9,20 @@ static constexpr int col_s = 32;
 // Forward declaration of core
 void MatVec(const int A[row_s][col_s],
             const int x[col_s],
-            int y[row_s]);
+            int y[row_s]) {
+    // Rolled / sequential nested loops, both pipelined.
+    #pragma hls_pipeline_init_interval 1
+    for (int i = 0; i < row_s; ++i) {
+        int sum = 0;
+
+        #pragma hls_pipeline_init_interval 1
+        for (int j = 0; j < col_s; ++j) {
+            sum += A[i][j] * x[j];
+        }
+
+        y[i] = sum;
+    }
+}
 
 class MatVecWrapper {
 public:

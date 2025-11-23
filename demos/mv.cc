@@ -11,35 +11,51 @@ static constexpr int col_s = 32;
 class TestBlock {
 public:
     InputChannel<int> matrix;
-    InputChannel<int> vector; 
-    OutputChannel<int> out;  
-
+    InputChannel<int> vector;
+    OutputChannel<int> out;
     Memory<int, col_s> store;
+
+    // State
+    int phase = 0;  // 0 = loading x, 1 = computing
+    int i = 0;      // row index
+    int j = 0;      // col index
+    int sum = 0;
 
     #pragma hls_top
     void Run() {
-        #pragma hls_unroll yes
-        for (int j = 0; j < col_s; ++j) {
-            int xj = vector.read();
-            store[j] = xj;
-        }
-
-        int sum = 0;
-        int j   = 0;
-
-        #pragma hls_unroll yes
-        for (int k = 0; k < row_s * col_s; ++k) {
-            int a_ij = matrix.read();
-            int xj   = store[j];
-
-            sum += a_ij * xj;
-
-            if (j == col_s - 1) {
-                out.write(sum); 
-                sum = 0;
-                j   = 0;
-            } else {
+        if (phase == 0) {
+            // Load vector x one element per call
+            if (j < col_s) {
+                int xj = vector.read();
+                store[j] = xj;
                 ++j;
+                if (j == col_s) {
+                    // done loading x
+                    j = 0;
+                    i = 0;
+                    sum = 0;
+                    phase = 1;
+                }
+            }
+        } else { // phase == 1: mat-vec compute
+            if (i < row_s) {
+                int a_ij = matrix.read();
+                int xj   = store[j];
+                sum += a_ij * xj;
+
+                ++j;
+                if (j == col_s) {
+                    // finished a row
+                    out.write(sum);
+                    sum = 0;
+                    j = 0;
+                    ++i;
+                    if (i == row_s) {
+                        // done all rows, go back to load phase
+                        phase = 0;
+                        j = 0;
+                    }
+                }
             }
         }
     }

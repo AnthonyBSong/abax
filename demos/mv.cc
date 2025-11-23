@@ -18,7 +18,7 @@ public:
 
     #pragma hls_top
     void Run() {
-        #pragma hls_pipeline_init_interval 1
+        #pragma hls_unroll yes
         for (int j = 0; j < col_s; ++j) {
             int xj = vector.read();
             store[j] = xj;
@@ -27,7 +27,7 @@ public:
         int sum = 0;
         int j   = 0;
 
-        #pragma hls_pipeline_init_interval 1
+        #pragma hls_unroll yes
         for (int k = 0; k < row_s * col_s; ++k) {
             int a_ij = matrix.read();
             int xj   = store[j];

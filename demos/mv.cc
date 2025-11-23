@@ -2,59 +2,71 @@ template<typename T>
 using InputChannel = __xls_channel<T, __xls_channel_dir_In>;
 template<typename T>
 using OutputChannel = __xls_channel<T, __xls_channel_dir_Out>;
-template<typename T, int Size>
-using Memory = __xls_memory<T, Size>;
 
 static constexpr int row_s = 32;
 static constexpr int col_s = 32;
 
-class TestBlock {
-public:
-    InputChannel<int> matrix;
-    InputChannel<int> vector;
-    OutputChannel<int> out;
-    Memory<int, col_s> store;
+// Forward declaration of core
+void MatVec(const int A[row_s][col_s],
+            const int x[col_s],
+            int y[row_s]);
 
-    // State
-    int phase = 0;  // 0 = loading x, 1 = computing
-    int i = 0;      // row index
-    int j = 0;      // col index
-    int sum = 0;
+class MatVecWrapper {
+public:
+    InputChannel<int> matrix_in;   // streams A row-major
+    InputChannel<int> vector_in;   // streams x
+    OutputChannel<int> out;        // streams y
+
+    // Local storage for A, x, y
+    int A[row_s][col_s];
+    int x[col_s];
+    int y[row_s];
+
+    // State machine
+    int phase = 0;   // 0 = load x, 1 = load A, 2 = compute, 3 = drain y
+    int i = 0;
+    int j = 0;
 
     #pragma hls_top
     void Run() {
         if (phase == 0) {
-            // Load vector x one element per call
+            // load x
             if (j < col_s) {
-                int xj = vector.read();
-                store[j] = xj;
+                x[j] = vector_in.read();
                 ++j;
                 if (j == col_s) {
-                    // done loading x
                     j = 0;
-                    i = 0;
-                    sum = 0;
                     phase = 1;
                 }
             }
-        } else { // phase == 1: mat-vec compute
+        } else if (phase == 1) {
+            // load A
             if (i < row_s) {
-                int a_ij = matrix.read();
-                int xj   = store[j];
-                sum += a_ij * xj;
-
+                A[i][j] = matrix_in.read();
                 ++j;
                 if (j == col_s) {
-                    // finished a row
-                    out.write(sum);
-                    sum = 0;
                     j = 0;
                     ++i;
                     if (i == row_s) {
-                        // done all rows, go back to load phase
-                        phase = 0;
-                        j = 0;
+                        i = 0;
+                        phase = 2;
                     }
+                }
+            }
+        } else if (phase == 2) {
+            // compute y = A * x using core function
+            MatVec(A, x, y);   // this uses pipelined loops internally
+            i = 0;
+            phase = 3;
+        } else { // phase == 3: drain y
+            if (i < row_s) {
+                out.write(y[i]);
+                ++i;
+                if (i == row_s) {
+                    // Done, restart for another transaction
+                    i = 0;
+                    j = 0;
+                    phase = 0;
                 }
             }
         }

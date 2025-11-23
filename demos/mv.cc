@@ -1,5 +1,3 @@
-#include "xls_int.h"
-
 template<typename T>
 using InputChannel = __xls_channel<T, __xls_channel_dir_In>;
 template<typename T>

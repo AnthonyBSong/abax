@@ -13,7 +13,7 @@ public:
 
     #pragma hls_top
     void Run() {
-        #pragma hls_pipeline_init_interval 1
+        //#pragma hls_pipeline_init_interval 1
         for(int i=0; i < size; ++i) {
             int va = a.read();
             int vb = b.read();

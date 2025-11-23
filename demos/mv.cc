@@ -20,7 +20,7 @@ public:
 
     #pragma hls_top
     void Run() {
-        // load the vector x from the vector channel into memory
+        #pragma hls_pipeline_init_interval 1
         for (int j = 0; j < col_s; ++j) {
             int xj = vector.read();
             store[j] = xj;
@@ -29,6 +29,7 @@ public:
         #pragma hls_pipeline_init_interval 1
         for (int i = 0; i < row_s; ++i) {
             int sum = 0;
+            #pragma hls_unroll yes
             for (int j = 0; j < col_s; ++j) {
                 int a_ij = matrix.read();
                 int xj = store[j];

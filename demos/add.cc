@@ -8,7 +8,7 @@ private:
 public:
   // Top method
   #pragma hls_top
-  int Run(int a, int b, int use) {
+  int Run(int a, int b) {
       return add(a, b);
   }
 };

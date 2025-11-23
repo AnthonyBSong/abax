@@ -1,8 +1,3 @@
-
-
-template <int Width, bool Signed = true>
-using ac_int = XlsInt<Width, Signed>;
-
 class TestBlock {
 private:
   // Signed adds

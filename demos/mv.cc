@@ -20,13 +20,13 @@ public:
 
     #pragma hls_top
     void Run() {
-        #pragma hls_pipeline_init_interval 1
+        #pragma hls_unroll no
         for (int j = 0; j < col_s; ++j) {
             int xj = vector.read();
             store[j] = xj;
         }
 
-        #pragma hls_pipeline_init_interval 1
+        #pragma hls_unroll no
         for (int i = 0; i < row_s; ++i) {
             int sum = 0;
             #pragma hls_unroll yes

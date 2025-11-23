@@ -1,16 +1,17 @@
-#include <cstdint>
+template <int Width, bool Signed = true>
+using ac_int = XlsInt<Width, Signed>;
 
 class TestBlock {
 private:
   // Signed adds
-  int32_t add(int32_t a, int32_t b) {
+  ac_int<32, true> add(ac_int<32, true> a, ac_int<32, true> b) {
     return a + b;
   }
 
 public:
   // Top method
   #pragma hls_top
-  int32_t Run(int32_t a, int32_t b, int use) {
+  ac_int<32, true> Run(ac_int<32, true> a, ac_int<32, true> b, int use) {
       return add(a, b);
   }
 };

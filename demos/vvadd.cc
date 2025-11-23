@@ -9,7 +9,6 @@ class TestBlock {
 public:
     InputChannel<int> a;
     InputChannel<int> b;
-    InputChannel<int> size;
     OutputChannel<int> out;
 
     #pragma hls_top

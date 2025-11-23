@@ -1,4 +1,3 @@
-//#include <cstdint>
 #include "xls_int.h"
 
 template<typename T>

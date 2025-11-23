@@ -10,33 +10,37 @@ static constexpr int col_s = 32;
 
 class TestBlock {
 public:
-    // Streamed inputs
     InputChannel<int> matrix;
-    InputChannel<int> vector;
-
-    OutputChannel<int> out; 
+    InputChannel<int> vector; 
+    OutputChannel<int> out;  
 
     Memory<int, col_s> store;
 
     #pragma hls_top
     void Run() {
-        #pragma hls_unroll no
+        #pragma hls_pipeline_init_interval 1
         for (int j = 0; j < col_s; ++j) {
             int xj = vector.read();
             store[j] = xj;
         }
 
-        #pragma hls_unroll no
-        for (int i = 0; i < row_s; ++i) {
-            int sum = 0;
-            #pragma hls_unroll yes
-            for (int j = 0; j < col_s; ++j) {
-                int a_ij = matrix.read();
-                int xj = store[j];
+        int sum = 0;
+        int j   = 0;
 
-                sum += a_ij * xj;
+        #pragma hls_pipeline_init_interval 1
+        for (int k = 0; k < row_s * col_s; ++k) {
+            int a_ij = matrix.read();
+            int xj   = store[j];
+
+            sum += a_ij * xj;
+
+            if (j == col_s - 1) {
+                out.write(sum); 
+                sum = 0;
+                j   = 0;
+            } else {
+                ++j;
             }
-            out.write(sum);
         }
     }
 };

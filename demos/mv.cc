@@ -3,40 +3,35 @@ using InputChannel = __xls_channel<T, __xls_channel_dir_In>;
 template<typename T>
 using OutputChannel = __xls_channel<T, __xls_channel_dir_Out>;
 
-static constexpr int row_s = 32;
-static constexpr int col_s = 32;
-
-// Forward declaration of core
-void MatVec(const int A[row_s][col_s],
-            const int x[col_s],
-            int y[row_s]) {
-    // Rolled / sequential nested loops, both pipelined.
-    #pragma hls_pipeline_init_interval 1
-    for (int i = 0; i < row_s; ++i) {
-        int sum = 0;
-
+class TestBlock {
+private: 
+    void MatVec(const int A[32][32],
+                const int x[32],
+                int y[32]) {
         #pragma hls_pipeline_init_interval 1
-        for (int j = 0; j < col_s; ++j) {
-            sum += A[i][j] * x[j];
+        for (int i = 0; i < 32; ++i) {
+            int sum = 0;
+
+            #pragma hls_pipeline_init_interval 1
+            for (int j = 0; j < 32; ++j) {
+                sum += A[i][j] * x[j];
+            }
+
+            y[i] = sum;
         }
-
-        y[i] = sum;
     }
-}
-
-class MatVecWrapper {
 public:
-    InputChannel<int> matrix_in;   // streams A row-major
-    InputChannel<int> vector_in;   // streams x
-    OutputChannel<int> out;        // streams y
+    InputChannel<int> matrix_in; 
+    InputChannel<int> vector_in;
+    OutputChannel<int> out;
 
     // Local storage for A, x, y
-    int A[row_s][col_s];
-    int x[col_s];
-    int y[row_s];
+    int A[32][32];
+    int x[32];
+    int y[32];
 
     // State machine
-    int phase = 0;   // 0 = load x, 1 = load A, 2 = compute, 3 = drain y
+    int phase = 0;
     int i = 0;
     int j = 0;
 
@@ -44,39 +39,38 @@ public:
     void Run() {
         if (phase == 0) {
             // load x
-            if (j < col_s) {
+            if (j < 32) {
                 x[j] = vector_in.read();
                 ++j;
-                if (j == col_s) {
+                if (j == 32) {
                     j = 0;
                     phase = 1;
                 }
             }
         } else if (phase == 1) {
             // load A
-            if (i < row_s) {
+            if (i < 32) {
                 A[i][j] = matrix_in.read();
                 ++j;
-                if (j == col_s) {
+                if (j == 32) {
                     j = 0;
                     ++i;
-                    if (i == row_s) {
+                    if (i == 32) {
                         i = 0;
                         phase = 2;
                     }
                 }
             }
         } else if (phase == 2) {
-            // compute y = A * x using core function
-            MatVec(A, x, y);   // this uses pipelined loops internally
+            MatVec(A, x, y);
             i = 0;
             phase = 3;
         } else { // phase == 3: drain y
-            if (i < row_s) {
+            if (i < 32) {
                 out.write(y[i]);
                 ++i;
-                if (i == row_s) {
-                    // Done, restart for another transaction
+                if (i == 32) {
+                    // Done
                     i = 0;
                     j = 0;
                     phase = 0;

@@ -1,0 +1,47 @@
+# proto-file: xls/contrib/xlscc/hls_block.proto
+# proto-message: HLSBlock
+
+channels {
+  name: "v0_in"
+  is_input: true
+  type: CHANNEL_TYPE_FIFO
+  width_in_bits: 32
+}
+
+channels {
+  name: "v1_in"
+  is_input: true
+  type: CHANNEL_TYPE_FIFO
+  width_in_bits: 32
+}
+
+channels {
+  name: "out"
+  is_input: false
+  type: CHANNEL_TYPE_FIFO
+  width_in_bits: 32
+}
+
+channels {
+  name: "v0"
+  type: CHANNEL_TYPE_MEMORY
+  width_in_bits: 32
+  depth: 16
+}
+
+channels {
+  name: "v1"
+  type: CHANNEL_TYPE_MEMORY
+  width_in_bits: 32
+  depth: 16
+}
+
+channels {
+  name: "c"
+  type: CHANNEL_TYPE_MEMORY
+  width_in_bits: 32
+  depth: 16
+}
+
+name: "TestBlock"
+
